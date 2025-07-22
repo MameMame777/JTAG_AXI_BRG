@@ -1,0 +1,98 @@
+// SVF File for JTAG-AXI Bridge Access
+// Author: FPGA Engineer
+// Date: 2025-07-23
+// Description: Serial Vector Format file for JTAG access to USER1 instruction
+//              Performs write operation: Write 0x12345678 to address 0x1000
+
+// SVF Header
+HDR 0;
+HIR 0;
+TDR 0;
+TIR 0;
+
+// Set frequency (optional, depends on JTAG adapter)
+FREQUENCY 1.00E+06 HZ;
+
+// Reset TAP controller to known state
+STATE RESET;
+STATE IDLE;
+
+// Note: This SVF assumes a single device in the JTAG chain
+// Modify the IR length based on your specific FPGA device
+// For Xilinx 7-series devices, IR length is typically 6 bits
+
+// Select USER1 instruction (0x02 for most Xilinx devices)
+// IR length = 6 for Xilinx 7-series FPGAs
+SIR 6 TDI (02) TDO (XX) SMASK (3F);
+
+// Example 1: Turn OFF all LEDs (Base + 0x00)
+// Command: 0x00000001 (Write)
+// Address: 0x43C00000 (Base address)
+// Data:    0x00000000 (All LEDs OFF)
+
+STATE DRSHIFT;
+SDR 96 TDI (0000000143C0000000000000) TDO (XXXXXXXXXXXXXXXXXXXXXXXX) SMASK (FFFFFFFFFFFFFFFFFFFFFFFF);
+STATE DRUPDATE;
+STATE IDLE;
+
+RUNTEST 100 TCK;  // Wait for AXI transaction to complete
+
+// Example 2: Turn ON all LEDs
+// Command: 0x00000001 (Write)
+// Address: 0x43C00000 (Base address)  
+// Data:    0x0000000F (All LEDs ON)
+
+SIR 6 TDI (02) TDO (XX) SMASK (3F);
+STATE DRSHIFT;
+SDR 96 TDI (0000000143C000000000000F) TDO (XXXXXXXXXXXXXXXXXXXXXXXX) SMASK (FFFFFFFFFFFFFFFFFFFFFFFF);
+STATE DRUPDATE;
+STATE IDLE;
+
+RUNTEST 100 TCK;
+
+// Example 3: Alternating LED Pattern 1 (1010)
+// Command: 0x00000001 (Write)
+// Address: 0x43C00000 (Base address)
+// Data:    0x0000000A (LEDs 3&1 ON, LEDs 2&0 OFF)
+
+SIR 6 TDI (02) TDO (XX) SMASK (3F);
+STATE DRSHIFT;
+SDR 96 TDI (0000000143C000000000000A) TDO (XXXXXXXXXXXXXXXXXXXXXXXX) SMASK (FFFFFFFFFFFFFFFFFFFFFFFF);
+STATE DRUPDATE;
+STATE IDLE;
+
+RUNTEST 100 TCK;
+
+// Example 4: Alternating LED Pattern 2 (0101)
+// Command: 0x00000001 (Write)
+// Address: 0x43C00000 (Base address)
+// Data:    0x00000005 (LEDs 2&0 ON, LEDs 3&1 OFF)
+
+SIR 6 TDI (02) TDO (XX) SMASK (3F);
+STATE DRSHIFT;
+SDR 96 TDI (000000014C00000000000005) TDO (XXXXXXXXXXXXXXXXXXXXXXXX) SMASK (FFFFFFFFFFFFFFFFFFFFFFFF);
+STATE DRUPDATE;
+STATE IDLE;
+
+RUNTEST 100 TCK;
+
+// Example 5: Read back LED register value
+// Command: 0x00000002 (Read)
+// Address: 0x43C00000 (Base address)
+// Data:    0x00000000 (dummy for read)
+
+SIR 6 TDI (02) TDO (XX) SMASK (3F);
+STATE DRSHIFT;
+SDR 96 TDI (0000000243C0000000000000) TDO (XXXXXXXXXXXXXXXXXXXXXXXX) SMASK (FFFFFFFFFFFFFFFFFFFFFFFF);
+STATE DRUPDATE;
+STATE IDLE;
+RUNTEST 100 TCK;
+
+// Get read result
+STATE DRSHIFT;
+SDR 96 TDI (000000000000000000000000) TDO (XXXXXXXXXXXXXXXXXXXXXXXX) SMASK (FFFFFFFFFFFFFFFFFFFFFFFF);
+STATE DRUPDATE;
+STATE IDLE;
+
+// Return to IDLE state
+STATE IDLE;
