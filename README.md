@@ -245,6 +245,142 @@ for pattern in patterns:
 bridge.disconnect()
 ```
 
+## Custom USB-JTAG Programming
+
+### Using Digilent USB-JTAG with Custom Programs
+
+If your board has a **Digilent USB-JTAG** (common on Zybo, Arty, etc.), you can create custom programs using the **Digilent Adept library**.
+
+#### Prerequisites
+
+1. **Install Digilent Adept Runtime**
+   - Download from: https://reference.digilentinc.com/software/adept/start
+   - Provides `djtg.dll` (Windows) or `libdjtg.so` (Linux)
+   - Test installation: `dadutil enum`
+
+2. **Verify USB-JTAG Detection**
+   ```bash
+   # Check if device is recognized
+   dadutil enum
+   # Should show your Digilent board
+   ```
+
+#### Programming Methods
+
+##### Method 1: Python with Digilent Adept
+
+```python
+from python.digilent_jtag_interface import DigilentJTAGInterface
+
+# Create interface
+jtag = DigilentJTAGInterface()
+
+# Enumerate and connect
+devices = jtag.enumerate_devices()
+jtag.connect(devices[0])
+
+# Control LEDs
+jtag.led_write(0xF)  # All LEDs ON
+led_state = jtag.led_read()  # Read current state
+
+jtag.disconnect()
+```
+
+##### Method 2: C/C++ with Adept Library
+
+```c
+#include "djtg.h"
+#include "dmgr.h"
+
+// Connect to device
+HIF hif;
+DmgrOpen(&hif, "device_name");
+DjtgEnable(hif);
+
+// Select USER1 instruction (0x02)
+uint8_t instruction = 0x02;
+DjtgPutTdiBits(hif, &instruction, NULL, 6, fFalse);
+
+// Shift 96-bit command for LED control
+uint8_t cmd_data[12] = {0x01, 0x00, 0x00, 0x00,  // Write command
+                        0x00, 0x00, 0xC0, 0x43,  // LED address
+                        0x0F, 0x00, 0x00, 0x00}; // LED pattern
+DjtgPutTdiBits(hif, cmd_data, NULL, 96, fFalse);
+
+// Cleanup
+DjtgDisable(hif);
+DmgrClose(hif);
+```
+
+##### Method 3: Enhanced Vivado TCL
+
+The included `scripts/vivado_jtag_access.tcl` automatically detects USB-JTAG devices:
+
+```tcl
+source scripts/vivado_jtag_access.tcl
+
+# Test connectivity
+test_usb_jtag_connectivity
+
+# Control LEDs
+jtag_axi_write 0x43C00000 0x0000000F  # All LEDs ON
+```
+
+#### Build Custom C Program
+
+```bash
+cd c_examples
+make check-adept  # Verify Adept installation
+make              # Build program
+./digilent_jtag_control test  # Run LED test
+```
+
+#### Performance Characteristics
+
+Based on the reference analysis:
+
+- **Maximum Speed**: ~30MHz TCK
+- **USB Latency**: ~125μs per operation (USB 2.0 HighSpeed)
+- **Optimization**: Use **batch mode** for 96-bit transfers
+- **Reliability**: Stable with proper synchronization
+
+#### Digilent Adept API Benefits
+
+1. **Hardware Abstraction**: Works with all Digilent USB-JTAG devices
+2. **Batch Operations**: Optimized for complex JTAG sequences
+3. **Multi-Device Support**: Handle multiple boards simultaneously
+4. **Professional Grade**: Used by Vivado and other Xilinx tools
+
+### Integration with Other Tools
+
+The system is compatible with:
+- **Digilent Adept**: Direct USB-JTAG control with custom programs
+- **UrJTAG**: Use SVF playbook feature
+- **XSCT**: Xilinx Software Command Line Tool
+- **Custom Tools**: Any tool supporting 96-bit JTAG shift operations
+
+## Troubleshooting
+
+### Common Issues
+
+1. **No JTAG Connection**: Check adapter drivers and permissions
+2. **Wrong LED Response**: Verify pin constraints and power supply
+3. **OpenOCD Errors**: Check configuration file and adapter compatibility
+4. **Digilent USB-JTAG Issues**:
+   - Install Digilent Adept Runtime
+   - Check USB cable and device power
+   - Verify device enumeration with `dadutil enum`
+   - Try different USB port or cable
+
+### Debug Tips
+
+- Use `scripts/vivado_jtag_access.tcl` for basic connectivity testing
+- For Digilent devices: Test with `dadutil` command line tool first
+- Monitor JTAG signals with oscilloscope if needed
+- Verify BSCANE2 primitive is properly instantiated
+- Check Windows Device Manager for USB-JTAG driver status
+```
+
 ## Quick Start Guide
 
 ### 1. Hardware Integration

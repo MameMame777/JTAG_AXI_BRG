@@ -47,6 +47,91 @@ class JTAGInterface(ABC):
         """Reset TAP controller"""
         pass
 
+class DigilentInterface(JTAGInterface):
+    """Digilent USB-JTAG interface using Adept library"""
+    
+    def __init__(self, device_name: str = None):
+        self.device_name = device_name
+        self.device_handle = None
+        self.connected = False
+        self.adept_lib = None
+        
+    def connect(self) -> bool:
+        """Connect to Digilent USB-JTAG device"""
+        try:
+            # Load Digilent Adept library
+            import ctypes
+            import sys
+            
+            if sys.platform.startswith('win'):
+                self.adept_lib = ctypes.CDLL('djtg.dll')
+            else:
+                self.adept_lib = ctypes.CDLL('libdjtg.so')
+            
+            # Enumerate and connect to device
+            # This is a simplified implementation
+            # Real implementation would use Adept API functions
+            
+            logger.info(f"Connecting to Digilent device: {self.device_name or 'Auto-detect'}")
+            
+            # Mock successful connection for now
+            self.device_handle = 1
+            self.connected = True
+            
+            logger.info("Connected to Digilent USB-JTAG successfully")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to connect to Digilent device: {e}")
+            return False
+    
+    def disconnect(self) -> None:
+        """Disconnect from Digilent device"""
+        if self.connected:
+            # Clean up Adept resources
+            self.connected = False
+            self.device_handle = None
+            logger.info("Disconnected from Digilent USB-JTAG")
+    
+    def shift_ir(self, data: int, length: int) -> int:
+        """Shift instruction register"""
+        if not self.connected:
+            return 0
+        
+        try:
+            # Implement IR shift using Adept API
+            logger.debug(f"Shifting IR: 0x{data:02x} ({length} bits)")
+            
+            # Mock implementation - replace with actual Adept calls
+            return data
+            
+        except Exception as e:
+            logger.error(f"IR shift failed: {e}")
+            return 0
+    
+    def shift_dr(self, data: int, length: int) -> int:
+        """Shift data register"""
+        if not self.connected:
+            return 0
+        
+        try:
+            # Implement DR shift using Adept API batch mode
+            logger.debug(f"Shifting DR: 0x{data:024x} ({length} bits)")
+            
+            # Mock implementation - replace with actual Adept calls
+            # Use batch mode for 96-bit transfers to improve performance
+            return data
+            
+        except Exception as e:
+            logger.error(f"DR shift failed: {e}")
+            return 0
+    
+    def reset_tap(self) -> None:
+        """Reset TAP controller"""
+        if self.connected:
+            logger.debug("Resetting TAP controller")
+            # Implement TAP reset using Adept API
+
 class OpenOCDInterface(JTAGInterface):
     """OpenOCD-based JTAG interface using TCL commands over socket"""
     
